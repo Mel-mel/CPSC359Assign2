@@ -1,126 +1,114 @@
 .globl      initializeUART
 
 initializeUART:
+//Step 1. Enable mini UART
+    ldr    r0, =UART_AUX_EN //Getting address of UART_AUX_EN
+    ldr    r1, [r0]         //Loading value at address r0 and put into r1
+    orr    r1, #1           //Setting bit 0 to enable mini UART
+    str    r1, [r0]         //Store r1 at address of r0
+    
+//Step 2. Disable interrupts
+    ldr    r0, =UART_AUX_MU_IER //Getting address of UART_AUX_MU_IER
+    ldr    r1, [r0]             //Loading value at address r0 and put into r1
+    bic    r1, #0b11            //Clears the entire register......DOES THIS ACTUALLY CLEAR THE ENTIRE REGISTER?!
+    str    r1, [r0]             //Store r1 at address of r0
+    
+//Step 3. Disabling receiving/transmiting register
+    ldr    r0, =UART_AUX_MU_CNTL_REG //Getting address of UART_AUX_MU_CNTL_REG
+    ldr    r1, [r0]                  //Loading value at address r0 and put into r1
+    bic    r1, #0b11                 //Clearing bits 0 and 1 for transmitter/reciever
+    str    r1, [r0]                  //Store r1 at address of r0
+    
+//Step 4. Setting symbol width (# of bits)
+    ldr    r0, =UART_AUX_MU_LCR_REG  //Getting address of UART_AUX_MU_LCR_REG
+    ldr    r1, [r0]                  //Loading value at address of r0 and put into r1
+    orr    r1, #0b1                  //Setting but 0 to 1 to enable 8 bit mode
+    str    r1, [r0]                  //Store r1 at address of r0
 
-    //Enable mini-UART. If bit0 is set then its enabled, if not then its disabled.
-    ldr    r0, =UART_AUX_EN
+//Step 5. Setting the RTS line to high
+    ldr    r0, =UART_AUX_MU_MCR_REG  //Getting address of UART_AUX_MU_MCR_REG
+    ldr    r1, [r0]                  //Loading value at address r0 and put into r1
+    bic    r1, #0b10                 //Clearing RTS line at bit 1 to set to high
+    str    r1, [r0]                  //Store r1 at address of r0
     
-    //Set bit0. Enable mini-UART
-    ldr    r1, [r0]
-    orr    r1, #1
-    str    r1, [r0]
+//Step 6. Clearing the input and output buffers
+    ldr    r0, =UART_AUX_MU_IIR_REG  //Getting address of UART_AUX_MU_IIR_REG
+    ldr    r1, [r0]                  //Loading value at address r0 and put into r1
+    orr    r1, #0b110                //Clearing bits 1 and 2 by setting them to 1
+                                     //This is what we had before -> orr    r1, #0x000000C6
+    str    r1, [r0]                  //Store r1 at address of r0
     
-    //Enable interrupts.(should make some of these labels into a function or something...)
-    ldr    r0, =UART_AUX_MU_IER
+//Step 7. Setting baud rate
+    ldr    r0, =UART_AUX_MU_BAUD_REG //Getting address of UART_AUX_MU_BAUD_REG
+    ldr    r1, =baudRate             //Getting address of value 270
+    ldr    r2, [r1]                  //Loading value of 270 from [r1] and put into r2
+    str    r2, [r0]                  //Store r2 at addreess of r0
     
-    ldr    r1, [r0]
-    bic    r1, #0b11    //Clears the entire register
-    str    r1, [r0]
+//STEP 8: Setting the GPIO lines 14 and 15
+    //Clearing bits 14 and 15
+    ldr    r0, =Function_register_1  //Why are we loading address here?
+    ldr    r0, =0x20200020           //Then loading a different one here? its over writing here
+    ldr    r1, [r0]                  //Loading value at address r0 and put into r1
+    mov    r2, #0b111111             //Moving bit mask 111111 into r2
+    lsl    r2, #12                   //Logically shifting left 12 times
+    bic    r1, r2                    //Clearing r1 with r2 (bit mask)
+    str    r1, [r0]                  //Store r1 into address of r0
     
-    //Disabling receiving/transmiting register (aka control register)
-    ldr    r0, =UART_AUX_MU_CNTL_REG
+    //Setting bits 14 and 15
+    ldr    r0, =0x20200020           //.....???
+    ldr    r1, [r0]                  //Loading value at address r0 and put into r1
+    mov    r2, #0b010010             //Moving bit mask 010010 into r2
+    lsl    r2, #12                   //Logically shifting left 12 times
+    orr    r1, r2                    //Setting bits 14 and 15 using r2 (bit mask)
+    str    r1, [r0]                  //Store r1 into address of r0
     
-    ldr    r1, [r0]
-    bic    r1, #0b11
-    str    r1, [r0]
-    
-    //Setting symbol width
-    ldr    r0, =UART_AUX_MU_LCR_REG
-    
-    ldr    r1, [r0]
-    orr    r1, #0b1      //Setting to 1 will set it to 8 bit mode
-    str    r1, [r0]
+//STEP 9: Disable pull up/down for GPIO lines 14 and 15
+    ldr    r0, =GPPUD                //Getting address of GPPUD
+    ldr    r1, [r0]                  //Loading value at address r0 and put into r1
+    bic    r1, #0b11                 //Clearing bit 0 and 1 with bit mask of 11
 
-    //Setting the RTS line to high
-    ldr    r0, =UART_AUX_MU_MCR_REG
-    
-    ldr    r1, [r0]
-    bic    r1, #0b10    //Clearing RTS line to set to high
-    str    r1, [r0]
-    
-    //Clearing the input and output lines
-    ldr    r0, =UART_AUX_MU_IIR_REG
-    
-    ldr    r1, [r0]
-    orr    r1, #0x000000C6
-    str    r1, [r0]
-    
-    //Setting baud rate
-    ldr    r0, =UART_AUX_MU_BAUD_REG
-    
-    ldr    r1, =270
-    str    r1, [r0]
-    
-    //STEP 8: Setting the GPIO lines 14 and 15
-    ldr    r0, =Function_register_1
-    
-    ldr    r0, =0x20200020
-    ldr    r1, [r0]
-    mov    r2, #0b111111
-    lsl    r2, #12
-    bic    r1, r2
-    str    r1, [r0]
-    //at this point line 14 & 15 are cleared
-    
-    ldr     r0, =0x20200020
-    ldr     r1, [r0]
-    mov     r2, #0b010010
-    lsl     r2, #12
-    orr     r1, r2
-    str     r1, [r0]
-    //at this point bit 14 & 15 have been set
-    
-    //STEP 9: Disable pull up/down for GPIO lines 14 and 15
-    
-    ldr    r0, =GPPUD
-    ldr    r1, [r0]
-    bic    r1, #0b11    //This is the PUD bit
+    mov    r2, #150                  //Moving 150 into r2
+    mov    r3, #0                    //Moving 0 into r3
 
-
-    mov r2,#150
-    mov r3, #0
 loop: 
-    cmp r2, r3
-    bne cont1
-    add r3, r3, #1
-    b   loop
+    cmp    r2, r3                    //Compare r2 and r3
+    beq    cont1                     //Branch out if r2 and r3 equal 150 (before was bne, i think it should be beq)
+    add    r3, r3, #1                //Incrementing r3 by 1
+    b      loop                      //Branch back to loop
 
 cont1:
-    ldr    r0, =GPPUDClk0
-    
-    ldr    r1, [r0]
-    mov    r2, #0b010010
-    lsl    r2, #12
-    orr    r1, r2
-    str    r1, [r0]
-    //at this point CLOCK lines 14 and 15 have been asserted
-    
-    mov r2,#150
-    mov r3, #0
+    ldr    r0, =GPPUDClk0            //Getting address of GPPUDClk0
+    ldr    r1, [r0]                  //Loading value at address r0 and put into r1
+    mov    r2, #0b010010             //Moving bit mask 010010 into r2
+    lsl    r2, #12                   //Logically shifting left 12 times
+    orr    r1, r2                    //Setting clock line bits 14 and 15 (Bits have been asserted)
+    str    r1, [r0]                  //Store r1 into address of r0
+ 
+    mov    r2,#150                   //Moving 150 into r2
+    mov    r3, #0                    //Moving 0 into r3
+
 loop2: 
-    cmp r2, r3
-    bne cont2
-    add r3, r3, #1
-    b   loop2
+    cmp    r2, r3                    //Comparing r2 and r3
+    beq    cont2                     //Branch out if r2 and r3 equal 150 (same questioning for the first 150 cycles^)                
+    add    r3, r3, #1                //Incrementing r3 by 1
+    b      loop2                     //Branch back to loop2
   
 cont2:
-    ldr    r0, =GPPUDClk1
+    ldr    r0, =GPPUDClk0            //Getting address of GPPUDClk1...WAIT WHY WE CLEARING CLOCK REGISTER 1? SHOULD BE 0
+    ldr    r1, [r0]                  //Loading value at address r0 and put into r1
+    mov    r2, #0b111111    //is it really 0111111? i changed to 111111  //Moving bit mask 111111 into r2
+    lsl    r2, #12                   //Logically shifting left 12 times
+    bic    r1, r2                    //Clearing clock line bits 14 and 15 
+    str    r1, [r0]                  //Store r1 into adddress of r0
     
-    ldr    r1, [r0]
-    mov    r2, #0b0111111
-    lsl    r2, #12
-    bic    r1, r2
-    str    r1, [r0]
+//STEP 10 - Enable receiving/transmitting
+    ldr    r0, =UART_AUX_MU_CNTL_REG //Getting address of UART_AUX_MU_CNTL_REG
+    ldr    r1, [r0]                  //Loading value at address r0 and put into r1
+    mov    r2, #0b11                 //Moving bit mask 11 into r2
+    orr    r1, r2                    //Setting reciever and transmitter enable bits at bit 0 and 1
+    str    r1, [r0]                  //Store r1 into address of r0
     
-    //STEP 10 - Enable receiving/transmitting
-    ldr    r0, =UART_AUX_MU_CNTL_REG
-    
-    ldr    r1, [r0]
-    mov    r2, #0b11
-    orr    r1, r2
-    str    r1, [r0]
-    
-    bx	   lr        //Branches back to the main.s
+    bx	   lr                        //Branches back to the main.s
 
 
 .section .data
@@ -138,4 +126,4 @@ cont2:
 .EQU    GPPUD, 0X20200094                  //GPPUD register (pull up/down)
 .EQU    GPPUDClk0, 0x20200098              //GPPUD clock register 0
 .EQU    GPPUDClk1, 0x2020009c              //GPPUD clock register 1
-
+.EQU    baudRate, 270                      //Baud rate is 270
