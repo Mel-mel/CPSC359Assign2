@@ -11,12 +11,12 @@ go:
 
     bl	initializeUART
     
-    mov r0, #0x41
+    mov r0, #0x41    // ASCII char A
     
 loopChar:
     bl putChar
 
-    add r0, r0, #0x1   
+    add r0, #1   
     cmp r0, #0x5A
     ble loopChar
     
@@ -25,29 +25,35 @@ haltLoop$:
    
 //****************************************************** 
 putChar:
-    ldr r3, =UART_AUX_MU_LSR_REG
+	//push {lr}
+    ldr r2, =UART_AUX_MU_LSR_REG
 
 inLoop:
     //Need to wait until bit 5 is set
-    ldr r1, [r3]
+    ldr r1, [r2]
     tst r1, #0x20 						//Testing bit 5
     beq inLoop
 
     //Write the character to the IO register
     ldr r2, =UART_AUX_MU_IO_REG
-    str r3, [r2]
+    str r0, [r2]
  
+    b getChar
+
     mov pc, lr
+    //pop {lr}
+    //bx lr
 
 //******************************************************
 
 getChar:
-    ldr r0, =UART_AUX_MU_LSR_REG
+    //push {lr}
+    ldr r2, =UART_AUX_MU_LSR_REG
     
 getCharLoop:
     //wait until data is ready (LSR bit 0 is set) 
-    ldr r1, [r2]
-    tst r1, #0x1 						//We have to test bit 0
+    ldr r3, [r2]
+    tst r0, #0b1 						//We have to test bit 0
     beq getCharLoop
        
     //write character to IO register
@@ -55,6 +61,8 @@ getCharLoop:
     ldr r0, [r2]
     
     mov pc, lr
+    //pop {lr}
+    //bx lr
 
 //******************************************************
 
