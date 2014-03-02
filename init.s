@@ -104,7 +104,7 @@ cont2:
     ldr    r0, =UART_AUX_MU_CNTL_REG //Getting address of UART_AUX_MU_CNTL_REG
     ldr    r1, [r0]                  //Loading value at address r0 and put into r1
     mov    r2, #0b11                 //Moving bit mask 11 into r2
-    bic    r1, r2                    //Setting reciever and transmitter enable bits at bit 0 and 1
+    orr    r1, r2                    //Setting reciever and transmitter enable bits at bit 0 and 1
     str    r1, [r0]                  //Store r1 into address of r0
     
     bx	   lr                        //Branches back to the main.s
