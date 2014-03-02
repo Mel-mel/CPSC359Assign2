@@ -4,13 +4,13 @@ initializeUART:
 //Step 1. Enable mini UART
     ldr    r0, =UART_AUX_EN //Getting address of UART_AUX_EN
     ldr    r1, [r0]         //Loading value at address r0 and put into r1
-    orr    r1, #1           //Setting bit 0 to enable mini UART
+    orr    r1, #0b1           //Setting bit 0 to enable mini UART
     str    r1, [r0]         //Store r1 at address of r0
     
 //Step 2. Disable interrupts
     ldr    r0, =UART_AUX_MU_IER //Getting address of UART_AUX_MU_IER
     ldr    r1, [r0]             //Loading value at address r0 and put into r1
-    bic    r1, #0b11            //Clears the entire register......DOES THIS ACTUALLY CLEAR THE ENTIRE REGISTER?!
+    bic    r1, #0xFFFFFFFF      //Clears the entire register
     str    r1, [r0]             //Store r1 at address of r0
     
 //Step 3. Disabling receiving/transmiting register
@@ -34,8 +34,7 @@ initializeUART:
 //Step 6. Clearing the input and output buffers
     ldr    r0, =UART_AUX_MU_IIR_REG  //Getting address of UART_AUX_MU_IIR_REG
     ldr    r1, [r0]                  //Loading value at address r0 and put into r1
-    orr    r1, #0b110                //Clearing bits 1 and 2 by setting them to 1
-                                     //This is what we had before -> orr    r1, #0x000000C6
+    orr    r1, #0x000000C6           //Enable FIFO then clearing bits 1 and 2 by setting them to 1
     str    r1, [r0]                  //Store r1 at address of r0
     
 //Step 7. Setting baud rate
@@ -47,7 +46,7 @@ initializeUART:
 //STEP 8: Setting the GPIO lines 14 and 15
     //Clearing bits 14 and 15
     ldr    r0, =Function_register_1  //Why are we loading address here?
-    ldr    r0, =0x20200020           //Then loading a different one here? its over writing here
+    //ldr    r0, =0x20200020           //Then loading a different one here? its over writing here
     ldr    r1, [r0]                  //Loading value at address r0 and put into r1
     mov    r2, #0b111111             //Moving bit mask 111111 into r2
     lsl    r2, #12                   //Logically shifting left 12 times
@@ -55,9 +54,9 @@ initializeUART:
     str    r1, [r0]                  //Store r1 into address of r0
     
     //Setting bits 14 and 15
-    ldr    r0, =0x20200020           //.....???
+    ldr    r0, =Function_register_1  
     ldr    r1, [r0]                  //Loading value at address r0 and put into r1
-    mov    r2, #0b010010             //Moving bit mask 010010 into r2
+    mov    r2, #0b10010             //Moving bit mask 010010 into r2
     lsl    r2, #12                   //Logically shifting left 12 times
     orr    r1, r2                    //Setting bits 14 and 15 using r2 (bit mask)
     str    r1, [r0]                  //Store r1 into address of r0
@@ -65,21 +64,21 @@ initializeUART:
 //STEP 9: Disable pull up/down for GPIO lines 14 and 15
     ldr    r0, =GPPUD                //Getting address of GPPUD
     ldr    r1, [r0]                  //Loading value at address r0 and put into r1
-    bic    r1, #0b11                 //Clearing bit 0 and 1 with bit mask of 11
+    bic    r1, #0b11                 //Clearing bit 0 and 1 with bit mask of 11 (Turining off clock signal)
 
     mov    r2, #150                  //Moving 150 into r2
     mov    r3, #0                    //Moving 0 into r3
 
 loop: 
     cmp    r2, r3                    //Compare r2 and r3
-    beq    cont1                     //Branch out if r2 and r3 equal 150 (before was bne, i think it should be beq)
+    beq    cont1                     //Branch out if r2 and r3 equal 150
     add    r3, r3, #1                //Incrementing r3 by 1
     b      loop                      //Branch back to loop
 
 cont1:
     ldr    r0, =GPPUDClk0            //Getting address of GPPUDClk0
     ldr    r1, [r0]                  //Loading value at address r0 and put into r1
-    mov    r2, #0b010010             //Moving bit mask 010010 into r2
+    mov    r2, #0b111111             //Moving bit mask 010010 into r2
     lsl    r2, #12                   //Logically shifting left 12 times
     orr    r1, r2                    //Setting clock line bits 14 and 15 (Bits have been asserted)
     str    r1, [r0]                  //Store r1 into address of r0
@@ -89,14 +88,14 @@ cont1:
 
 loop2: 
     cmp    r2, r3                    //Comparing r2 and r3
-    beq    cont2                     //Branch out if r2 and r3 equal 150 (same questioning for the first 150 cycles^)                
+    beq    cont2                     //Branch out if r2 and r3 equal 150          
     add    r3, r3, #1                //Incrementing r3 by 1
     b      loop2                     //Branch back to loop2
   
 cont2:
-    ldr    r0, =GPPUDClk0            //Getting address of GPPUDClk1...WAIT WHY WE CLEARING CLOCK REGISTER 1? SHOULD BE 0
+    ldr    r0, =GPPUDClk0            //Getting address of GPPUDClk0
     ldr    r1, [r0]                  //Loading value at address r0 and put into r1
-    mov    r2, #0b111111    //is it really 0111111? i changed to 111111  //Moving bit mask 111111 into r2
+    mov    r2, #0b111111             //Moving bit mask 111111 into r2
     lsl    r2, #12                   //Logically shifting left 12 times
     bic    r1, r2                    //Clearing clock line bits 14 and 15 
     str    r1, [r0]                  //Store r1 into adddress of r0
@@ -105,7 +104,7 @@ cont2:
     ldr    r0, =UART_AUX_MU_CNTL_REG //Getting address of UART_AUX_MU_CNTL_REG
     ldr    r1, [r0]                  //Loading value at address r0 and put into r1
     mov    r2, #0b11                 //Moving bit mask 11 into r2
-    orr    r1, r2                    //Setting reciever and transmitter enable bits at bit 0 and 1
+    bic    r1, r2                    //Setting reciever and transmitter enable bits at bit 0 and 1
     str    r1, [r0]                  //Store r1 into address of r0
     
     bx	   lr                        //Branches back to the main.s
