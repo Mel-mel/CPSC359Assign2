@@ -1,3 +1,6 @@
+//Somehow need to copy contents of r0 into another register.
+//Then apply this register into getCharLoop line 65
+
 .section .init
 .globl starting
 
@@ -52,13 +55,14 @@ getChar:
     
 getCharLoop:
     //wait until data is ready (LSR bit 0 is set) 
-    ldr r3, [r2]
-    tst r0, #0b1 						//We have to test bit 0
+    //ldr r3, [r2]
+    mov r3, r0
+    tst r3, #0b1 						//We have to test bit 0
     beq getCharLoop
        
     //write character to IO register
     ldr r2, =UART_AUX_MU_IO_REG
-    ldr r0, [r2]
+    ldr r0, [r2]					//??????????*************
     
     mov pc, lr
     //pop {lr}
@@ -69,4 +73,5 @@ getCharLoop:
 .section .data
 .EQU UART_AUX_MU_LSR_REG, 0x20215054 	//Line status register
 .EQU UART_AUX_MU_IO_REG, 0x20215040 	//IO register
+
 
