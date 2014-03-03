@@ -1,0 +1,176 @@
+//Somehow need to copy contents of r0 into another register.
+//Then apply this register into getCharLoop line 65
+
+.section .init
+.globl starting
+
+starting:
+    b go
+    .section .text
+    
+go:
+    mov sp, #0x8000
+    bl EnableJTAG
+
+    bl	initializeUART
+    
+loopChar:
+//Not passing the address of the buffer correctly write needs it
+    
+	bl writeStringUART
+//Not passing the address of the buffer correctly read needs it
+	bl readLineUART
+
+	//we want to pop r4 and store into r0
+	//call putChar (should technically print that letter)
+	//Loop this bro. DO IT OVAR AND OVAR AND OVAR.
+	//We done bro. (NOW CHECK FOR 'ECHO + ""' and "LED on/off")
+	//oh, and make sure to put/print error messages should
+	//something other than those two ^ be set as input.
+
+haltLoop$:
+    b haltLoop$                 // end program
+   
+//******************************************************
+//This is basically for printing the characters
+/* Put a character in the UART transmitter FIFO
+*
+r0 - char to write(only lower byte used)
+* Returns:
+*
+r0 - character written
+*/
+putChar:
+break69:
+	ldr r2, =UART_AUX_MU_LSR_REG // line status register
+putWaitLoop$:
+	ldr r1, [r2]
+	tst r1, #0x20 // test bit 5
+	beq putWaitLoop$
+// wait until LSR bit 5 (transmitter empty) is set
+// i.e., wait until line can accept at least one byte
+	ldr r2, =UART_AUX_MU_IO_REG // IO register
+	str r0, [r2]
+break70:
+
+// write character to the IO register
+	mov pc, lr
+
+
+//******************************************************
+
+getChar:
+	ldr r2, =UART_AUX_MU_LSR_REG // line status reg
+getWaitLoop$:
+	ldr r1, [r2]
+	tst r1, #0x1 // test bit 0
+	beq getWaitLoop$
+// wait until data is ready (LSR bit 0 is set)
+	ldr r2, =UART_AUX_MU_IO_REG
+	ldr r0, [r2]
+// write character to IO register
+	mov pc, lr
+
+
+//******************************************************
+
+/* Read from UART until newline is encountered
+*
+r0 - buffer
+*
+r1 - buffer length
+* Returns:
+*
+r0 - number of chars read
+*/
+readLineUART:
+//Pushing values of r4, r5, r6, and lr into stack
+	push {r4, r5, r6, lr}
+//Declaring names for r4, r5, and r6
+	buff .req r4
+	maxlen .req r5
+	count .req r6
+//buff stores the some value of r0 (buffer address?)
+//maxlen stores the buffer length
+//count is the counter
+	mov buff, r0
+	mov maxlen, r1
+	mov count, #0
+    
+    
+
+break1:
+readLoop$:
+	teq count, maxlen
+//Testing if count equals the maxlen
+	beq readLoopEnd$
+//Exit read loop if count == maxlen
+	bl getChar
+//Get a character from UART line
+	bl putChar
+//Echo character back down the line
+	strb r0, [buff]
+//Store the character in the buffer
+	add count, #1 
+//Increment count
+	add buff, #1
+//Increment buffer pointer
+	teq r0, #'\r'
+	bne readLoop$
+//Loop if character read is not carriage return (\r)
+break2:
+	mov r0, #'\n'
+	bl putChar
+	sub buff, #1
+	mov r0, #0
+	strb r0, [buff]
+//Write a zero over carriage return in buffer
+readLoopEnd$:
+	sub r0, count, #1
+//eturn count - 1
+    
+	pop {r4, r5, r6, pc}
+    mov    pc, lr
+//*********************************************************
+/* Write a string to the UART line
+* r0 - string pointer
+* r1 - length
+*/
+writeStringUART:
+//pushing values of registers into function
+//lr is the calling address from the main	
+	push {r4, r5, lr} 
+//declaring names for r4 and r5
+	string .req r4
+	length .req r5
+//string aka buffer
+//length stores number of characters
+	mov string, r0
+	mov length, r1
+
+writeLoop$:
+//Compare length to 0
+	cmp length, #0
+	ble writeLoopEnd$
+//Loading chracter into r0
+	ldr r0, [string]
+//write charcters
+	bl putChar
+//fetches us the nect character
+	add string, #1
+//read only however long the length is
+	sub length, #1
+
+	b writeLoop$
+
+writeLoopEnd$:
+//get original r4 and r5 and pc back
+	pop {r4, r5, pc}
+//go back to the main 
+    mov    pc, lr
+//*********************************************************
+.section .data
+.EQU UART_AUX_MU_LSR_REG, 0x20215054 //Line status register
+.EQU UART_AUX_MU_IO_REG, 0x20215040 //IO register
+aBuff:
+    .byte
