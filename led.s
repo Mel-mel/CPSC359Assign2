@@ -1,16 +1,16 @@
 //Richard Huynh			UCID: 10099642
 //Melissa Ta			UCID: 10110850
-//Yin-Li (Emily) Chow	UCID: 10103742
+//Yin-Li (Emily) Chow           UCID: 10103742
 .globl   startinput
 
 startinput:
-    b    begin        //Branch to begin
+    b    begin             //Branch to begin
     .section .text
 
 //This will turn the led on
 .globl ledOn
 ledOn:
-	bl begin               //Branch to begin
+    bl begin               //Branch to begin
     ldr    r6, =0x20200028 //Clearing register 0 address
     mov    r7, #0x00010000 //Move 1 over 16 times
     str    r7, [r6]        //Write to clear register 0
@@ -19,7 +19,7 @@ ledOn:
 //This will turn off the led
 .globl ledOff
 ledOff:
-	bl begin               //Branch to begin
+    bl begin               //Branch to begin
     ldr    r6, =0x2020001C //Setting regiser 0 address
     mov    r7, #0x00010000 //Move 1 over 16 times
     str    r7, [r6]        //Write to set register 0
@@ -42,4 +42,4 @@ begin:
 
     str    r7, [r6]        //Store the register into memory
 	
-	mov    pc, lr          //Branch back to calling code   
+    mov    pc, lr          //Branch back to calling code   
