@@ -1,3 +1,6 @@
+//Richard Huynh			UCID: 10099642
+//Melissa Ta			UCID: 10110850
+//Yin-Li (Emily) Chow	UCID: 10103742
 .globl initializeUART
 
 initializeUART:
@@ -39,10 +42,10 @@ initializeUART:
     
 //Step 7. Setting baud rate
     ldr r0, =UART_AUX_MU_BAUD_REG 	//Getting address of UART_AUX_MU_BAUD_REG
-	ldr r1, [r0]
-	ldr r2, =baudRate
-	ldr r3, [r2]
-	orr r1, r2
+	ldr r1, [r0]                    //Loading value at address r0 and put into r1
+	ldr r2, =baudRate               //Getting address of baudRate
+	ldr r3, [r2]                    //Loading value at address r2 and put into r3
+	orr r1, r2                      //Setting baud rate to 270
     str r1, [r0] 					//Store r2 at address of r0
 
 //STEP 8: Setting the GPIO lines 14 and 15
@@ -111,8 +114,8 @@ cont2:
 .section .data
 
 //Defining constants
-.EQU UART_AUX_EN, 0x20215004 		//UART auxilary enable register
-.EQU UART_AUX_MU_IER, 0x20215044 	//UART interrupt enable register
+.EQU UART_AUX_EN, 0x20215004 		    //UART auxilary enable register
+.EQU UART_AUX_MU_IER, 0x20215044 	    //UART interrupt enable register
 .EQU UART_AUX_MU_CNTL_REG, 0x20215060 	//UART auxilary control register
 .EQU UART_AUX_MU_LCR_REG, 0x2021504c 	//UART line control register
 .EQU UART_AUX_MU_MCR_REG, 0x20215050 	//UART modulation control register
@@ -120,7 +123,7 @@ cont2:
 .EQU UART_AUX_MU_BAUD_REG, 0x20215068 	//UART baud register
 
 .EQU Function_register_1, 0x20200004 	//Function select 1
-.EQU GPPUD, 0X20200094 				//GPPUD register (pull up/down)
-.EQU GPPUDClk0, 0x20200098 			//GPPUD clock register 0
-.EQU GPPUDClk1, 0x2020009c 			//GPPUD clock register 1
+.EQU GPPUD, 0X20200094 				    //GPPUD register (pull up/down)
+.EQU GPPUDClk0, 0x20200098 			    //GPPUD clock register 0
+.EQU GPPUDClk1, 0x2020009c 			    //GPPUD clock register 1
 .EQU baudRate, 0x10E					//Baud rate is 270
