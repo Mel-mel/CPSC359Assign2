@@ -160,7 +160,7 @@ checkInput:
 	add r3, #1                   //Increment r3 by 1
 	
 	ldrb r1, [string, r3]        //Get second character from string address
-	mov r2, #065                 //Move "e" into r2
+	mov r2, #0x65                 //Move "e" into r2
 	cmp r1, r2                   //Compare r1 and r2
  	bne invalid                  //Branch to invalid if r1 != "e"
 	add r3, #1                   //Increment r3 by 1
@@ -172,7 +172,7 @@ checkInput:
 	add r3, #1                   //Increment r3 by 1
 	
 	ldrb r1, [string, r3]        //Get fourth character from string address
-	mov r2, #020                 //Move " " into r2
+	mov r2, #0x20                 //Move " " into r2
 	cmp r1, r2                   //Compare r1 and r2
 	bne invalid                  //Branch to invalid if r1 != " "
 	add r3, #1                   //Increment r3 by 1
@@ -194,7 +194,7 @@ checkInput:
 	b invalid                    //Branch to invalid (assuming that there are more characters afterwards)
 
 off:
-	mov r2, #066                 //Move "f" into r2
+	mov r2, #0x66                 //Move "f" into r2
 	cmp r1, r2                   //Compare r1 and r2
 	bne invalid                  //Branch to invalid if r1 != "f"
 	add r3, #1                   //Increment r3 by 1
@@ -243,7 +243,7 @@ echo:
 	add r3, #1                   //Increment r3 by 1
 	
 	ldrb r1, [string, r3]        //Get fouth character from string address
-	mov r2, #06F                 //Move "o" into r2
+	mov r2, #0x6F                 //Move "o" into r2
 	cmp r1, r2                   //Compare r1 and r2
 	bne invalid                  //Branch to invalid if r1 != "o"
 	add r3, #1                   //Increment r3 by 1
@@ -279,7 +279,7 @@ writeErrorUART:
 	length .req r5              //Set length = r5
 
 	mov    errorString, r0      //Move buffer address (r0) into errorString
-	mov    length, #30          //Move #30 into length
+	mov    length, #29          //Move #30 into length
 
 writeErrorLoop:
 	cmp length, #0              //Compare the length to 0
