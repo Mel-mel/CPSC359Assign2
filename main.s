@@ -4,7 +4,8 @@
 starting:
     b go
     .section .text
-    
+
+.globl go    
 go:
     mov sp, #0x8000
     bl EnableJTAG
@@ -22,28 +23,18 @@ go:
     ldr r0, =buff			//loading buffer
 	mov	r1,	#256			//setting max of buffer 
 	
-	//********NOTE: MAX RETURN OUTPUT CHARS IS 24*********
 	
 	bl readLineUART			//read input lines
 	
-	mov	r1,	r0				//set max count for characters inputted
+	mov	r10, r0				//set max count for characters inputted
 
 	mov	r0,	#0xA			//adds a space 
 	bl putChar				//prints out space
 	
-	//****likely put some sort of branching checking thing here
-	//do not forget that the below ldr buffer and writeStringUART
-	//will also be in the checkInput as well. 
-	//bl checkInput
-	
-	ldr r0, =buff			//loads buffer
-	bl writeStringUART		//writes input lines out
-	
-	b go
+	ldr r0, =buff
+	bl checkInput
 
-	//We done bro. (NOW CHECK FOR 'ECHO + ""' and "LED on/off")
-	//oh, and make sure to put/print error messages should
-	//something other than those two ^ be set as input.
+	b go
 
 haltLoop$:
     b haltLoop$                 // end program
@@ -128,7 +119,9 @@ writeStringUART:
 	string .req r4
 	length .req r5
 	mov string, r0
-	mov length, r1
+	mov length, r10
+	add length, #1
+	add string, #6
 
 writeLoop$:
 	cmp length, #0
@@ -144,31 +137,151 @@ writeLoop$:
 writeLoopEnd$:
 	pop {r4, r5, pc}
     mov pc, lr
+
 //*********************************************************
 /*Time to do some ascii checking broz. Likely we would do this 
 during the reading/processing of the string*/
 
 checkInput:
-	push {r0, r4, lr}
-	read .req r4
-	mov read, r0
-	mov r1, #6			//length of "led on"
+/*r0 - string pointer
+* r1 - length
+*/
+	push {r4, r5, lr}
+	string .req r4
+	length .req r5
+	mov string, r0
+	mov length, r5
+	mov r3, #0
 
-checkLED:
-	ldr r2, =ledIsOn
-	cmp r1, r2			//compares string + input
-	beq callLEDOn
-	
-	
-	pop {r0, r4, lr}
-	mov pc, lr
+	ldrb r1, [string, r3]
+	mov r2, #0x6C				// "l"
+	cmp r1, r2
+	bne echo
+	add r3, #1
+	ldrb r1, [string, r3]
+	mov r2, #0x65				// "e"
+	cmp r1, r2
+	bne invalid
+	add r3, #1
+	ldrb r1, [string, r3]
+	mov r2, #0x64				// "d"
+	cmp r1, r2
+	bne invalid
+	add r3, #1
+	ldrb r1, [string, r3]
+	mov r2, #0x20				// " "
+	cmp r1, r2
+	bne invalid
+	add r3, #1
+	ldrb r1, [string, r3]
+	mov r2, #0x6F				// "o"
+	cmp r1, r2
+	bne invalid
+	add r3, #1
+	ldrb r1, [string, r3]
+	mov r2, #0x6E				// "n"
+	cmp r1, r2
+	bne off
+	add r3, #1
+	cmp     r3, r10
+    beq     callLEDOn
+	b invalid
+
+off:
+	mov r2, #0x66				// "f"
+	cmp r1, r2
+	bne invalid
+	add r3, #1
+	ldrb r1, [string, r3]
+	mov r2, #0x66				// "f"
+	cmp r1, r2
+	bne invalid
+	add r3, #1
+	cmp     r3, r10
+    beq     callLEDOff
+	b invalid	
+
+invalid:	
+    ldr    r0, =errorMessage
+    bl     writeErrorUART
+	b go
 
 callLEDOn:
-	//branch to other file LED On
-	ldr r0, =tempPrintON
-	bl writeStringUART
-	mov pc, lr
+	bl ledOn
+	b go
 
+callLEDOff:
+	bl ledOff
+	b go
+
+//*********************************************************
+echo: 
+	ldrb r1, [string, r3]
+	mov r2, #0x65				// "e"
+	cmp r1, r2
+	bne invalid
+	add r3, #1
+	ldrb r1, [string, r3]
+	mov r2, #0x63				// "c"
+	cmp r1, r2
+	bne invalid
+	add r3, #1
+	ldrb r1, [string, r3]
+	mov r2, #0x68				// "h"
+	cmp r1, r2
+	bne invalid
+	add r3, #1
+	ldrb r1, [string, r3]
+	mov r2, #0x6F				// "o"
+	cmp r1, r2
+	bne invalid
+	add r3, #1
+	ldrb r1, [string, r3]
+	mov r2, #0x20				// " "
+	cmp r1, r2
+	bne invalid
+	add r3, #1
+	ldrb r1, [string, r3]
+	mov r2, #0x22				// """
+	cmp r1, r2
+	bne invalid
+		
+	mov r3, r10
+	sub r3, #1
+	ldrb r1, [string, r3]	
+	mov r2, #0x22				// """
+	cmp r1, r2
+	bne invalid
+	b	writing
+
+writing:
+	b writeStringUART
+
+//*********************************************************
+
+.globl writeErrorUART
+writeErrorUART:
+	push {r4, r5, lr}
+    errorString .req r4
+    length .req r5
+
+    mov    errorString, r0
+    mov    length, #30
+
+writeErrorLoop:
+	cmp length, #0
+	ble writeErrorLoopEnd
+
+	ldrb r0, [errorString], #1
+	bl putChar
+	
+
+	sub length, #1
+
+	b writeErrorLoop
+
+writeErrorLoopEnd:
+	pop	{r4, r5, pc}
 
 //*********************************************************
 .section .data
@@ -179,9 +292,5 @@ buff:
 	.byte	0
 	.endr
 
-echo:			.string "echo "
-ledIsOn:		.string "led on"
-ledIsOff:		.string "led off"
-errorMessage:	.string "error: invalid input"
 
-tempPrintON:	.string "led is on"
+errorMessage:	.ascii "error: invalid input\r"
